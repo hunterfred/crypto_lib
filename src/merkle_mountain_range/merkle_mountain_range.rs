@@ -542,9 +542,10 @@ impl<T> MMR<T> {
         if mmr_proof.target_node != self.nodes[mmr_proof.target_idx] {
             return false;
         }
-        let heights = Self::_get_heights(mmr_proof.mmr_size);
+        // let heights = Self::_get_heights(mmr_proof.mmr_size);
         let mut current_idx = mmr_proof.target_idx;
-        let mut current_height = heights[current_idx];
+        // let mut current_height = heights[current_idx];
+        let mut current_height = Self::height_at(current_idx);
         let mut current_lvl_hash = mmr_proof.target_node.clone();
         // we keep track if and when we reach the peak at the first time
         // because, for the first time, we hash with the bag root of the right hash(current, right)
@@ -570,8 +571,11 @@ impl<T> MMR<T> {
             // check if we are already at current peak
             // we are at peak if: we are on the side already (cross the boundaries)
             //                    or the heights are different than our current height
-            if (right_neigh_idx >= mmr_proof.mmr_size || heights[right_neigh_idx] < current_height)
-                && (left_neigh_idx == 0 || heights[left_neigh_idx] > current_height)
+            // if (right_neigh_idx >= mmr_proof.mmr_size || heights[right_neigh_idx] < current_height)
+            //     && (left_neigh_idx == 0 || heights[left_neigh_idx] > current_height)
+            if (right_neigh_idx >= mmr_proof.mmr_size
+                || Self::height_at(right_neigh_idx) < current_height)
+                && (left_neigh_idx == 0 || Self::height_at(left_neigh_idx) > current_height)
             {
                 debug_println!(
                     "Reached peak at idx={:?}, height={:?}, right_nei={:?}, left_nei={:?}",
@@ -609,14 +613,17 @@ impl<T> MMR<T> {
                 current_lvl_hash = ctx.finish().into();
                 // go left
                 current_idx = left_neigh_idx;
-                current_height = heights[left_neigh_idx];
+                // current_height = heights[left_neigh_idx];
+                current_height = Self::height_at(left_neigh_idx);
             } else {
                 // if we are not at the current peak yet
                 // check if the proof is left proof or right proof
                 // it's a left node if its height is the same as its right neighour
                 // and right neighbor is inbound
+                // if right_neigh_idx < mmr_proof.mmr_size
+                //     && current_height == heights[right_neigh_idx]
                 if right_neigh_idx < mmr_proof.mmr_size
-                    && current_height == self.heights[right_neigh_idx]
+                    && current_height == Self::height_at(right_neigh_idx)
                 {
                     // left node first
                     ctx.update(current_lvl_hash.as_ref());
@@ -635,7 +642,8 @@ impl<T> MMR<T> {
                     );
                 } else {
                     // else it's a right node, with no guarantee what the left height could be
-                    let left_neigh_height = self.heights[left_neigh_idx];
+                    // let left_neigh_height = heights[left_neigh_idx];
+                    let left_neigh_height = Self::height_at(left_neigh_idx);
 
                     // left node fist
                     ctx.update(proof_node.as_ref());
@@ -659,6 +667,97 @@ impl<T> MMR<T> {
 
         // return current_lvl_hash == self.get_root();
         return current_lvl_hash == mmr_proof.mmr_root;
+    }
+
+    /// given an index in mmr, return the height of node at this index
+    pub fn height_at(idx: usize) -> usize {
+        // first determines the maximum heights possible in the forest
+        let mut max_height = 0;
+        // +1 to account for 0-indexed
+        let mut idx_local = idx + 1;
+        while idx_local > 0 {
+            idx_local >>= 1;
+            max_height += 1;
+        }
+        debug_println!("max height {:?} for idx {:?}", max_height, idx);
+        // then try to remove the trees at different heights
+        // +1 to account for 0-indexed
+        idx_local = idx + 1;
+        while max_height > 0 {
+            max_height -= 1;
+            let tree_size = (2 << max_height) - 1;
+            debug_println!("tree height {:?} size {:?}", max_height, tree_size);
+            if tree_size <= idx_local {
+                debug_println!("tree height {:?} size {:?} removed", max_height, tree_size);
+                idx_local -= tree_size;
+
+                // if there is no left over, we are on top of the perfect three,
+                // then just directly return
+                if idx_local == 0 {
+                    return max_height;
+                }
+
+                // since we are able to remove a tree of size max_height
+                // we need to recheck this height again
+                // in case we are also at this height
+                // (twin peaks)
+                max_height += 1;
+            }
+        }
+        debug_println!("left over size {:?}", idx_local);
+        // now the left over is our incomplete current tree
+        // try to remove each level to get the height
+        let mut height = 0;
+        while idx_local > 1 {
+            idx_local -= 2 << height;
+            height += 1;
+        }
+        return height;
+
+        /*
+
+        // General idea is we we turn the tree into binary, 1-indexed representation
+        // like the example below:
+        // 2        111
+        //        /     \
+        // 1     11     110       1010
+        //      /  \    / \      /    \
+        // 0   1   10 100 101  1000  1001  1011
+        // notice the fact that left-most tree root always have format 11..11 (all ones with length = height of tree - 1)
+        // So this is our approach: we keep substracting the left tree (which size is 2^(current_msb) - 1 )
+        //      until we see all ones (where we reached left-most),
+        //      then simply count number of ones in the tree, -1 to get height
+        //
+        // for example: calculate height of 1010, left tree size = 2^(msb(1010)) - 1 = 111
+        //                  shift tree 1010 left by 111, we get idx = 1010 - 111 = 11
+        //                  then we get 11, count number of 1s = 2, height = 2 - 1 = 1
+
+        // try another implementation
+        let mut height = 0;
+        // +1 to account for 0-indexed
+        let mut idx_local = idx + 1;
+        // keep subtracting until we see all bits are ones
+        loop {
+            // check if we are already all ones
+            if (idx_local << 1) & idx_local == 0 {
+                idx_local >>= 1;
+                while idx_local > 0 {
+                    idx_local >>= 1;
+                    height += 1;
+                }
+                return height;
+            }
+            // calculate and substract left tree size
+            let mut left_tree = 1;
+            let mut temp = idx_local;
+            temp >>= 1;
+            while temp > 0 {
+                temp >>= 1;
+                left_tree <<= 1;
+            }
+            idx_local -= left_tree - 1;
+        }
+        */
     }
 
     /// for an array, calculate the heights for each element

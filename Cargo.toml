@@ -22,3 +22,20 @@ time-test = "0.2.2"
 time = { version = "0.2", default-features = false }
 rand = "0.6"
 blake3 = "0.3.3"
+
+
+# for test purpose
+merklemountainrange = "0.0.1"
+blake2 = "0.8.1"
+ckb-merkle-mountain-range = "0.3.0"
+bytes = "0.5.4"
+blake2b-rs = "0.1.5"
+
+[dependencies.digest]
+version = "0.8.0"
+
+[dependencies.tari_utilities]
+version = "0.0.1"
+[dev-dependencies.blake2]
+version = "0.8.0"
+
