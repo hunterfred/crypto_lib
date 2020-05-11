@@ -44,6 +44,7 @@ pub struct MMRProof {
     target_idx: usize,
     proofs: Vec<H256>,
     mmr_size: usize,
+    mmr_root: H256,
 }
 
 impl<T> MMR<T> {
@@ -348,6 +349,7 @@ impl<T> MMR<T> {
                 target_idx: idx,
                 proofs: Vec::new(),
                 mmr_size: self.current_len,
+                mmr_root: [0u8; 32].into(),
             };
         }
         let mut current_idx = idx;
@@ -506,6 +508,7 @@ impl<T> MMR<T> {
             target_idx: idx,
             proofs: proof_array,
             mmr_size: self.current_len,
+            mmr_root: self.get_root(),
         };
     }
 
@@ -523,6 +526,7 @@ impl<T> MMR<T> {
             target_idx: self.current_len,
             proofs: Vec::new(),
             mmr_size: self.current_len,
+            mmr_root: [0u8; 32].into(),
         };
     }
 
@@ -652,7 +656,8 @@ impl<T> MMR<T> {
             }
         }
 
-        return current_lvl_hash == self.get_root();
+        // return current_lvl_hash == self.get_root();
+        return current_lvl_hash == mmr_proof.mmr_root;
     }
 
     /// for an array, calculate the heights for each element
