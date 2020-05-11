@@ -1,7 +1,7 @@
-use super::super::hash::get_hasher;
 use super::super::hash::Hashable;
+use super::super::hash::Hasher;
 use super::super::hash::H256;
-use log::debug;
+use crate::HASH_TYPE;
 
 // The debug version
 #[cfg(debug_assertions)]
@@ -64,15 +64,25 @@ impl<T> MMR<T> {
             return mmr;
         }
         // else we need to construct the MMR now
-        for (idx, d) in data.iter().enumerate() {
+
+        // set up hasher context
+        let mut ctx = Hasher::new(&HASH_TYPE);
+
+        for (_idx, d) in data.iter().enumerate() {
+            // check number of additional hashes needed to form the forest
             let hashes_needed = mmr.hashes_needed(mmr.current_len);
-            debug_println!("hashes needed for idx={:?}: {:?}", idx, hashes_needed);
-            let current_data_hash: H256 = d.hash();
+            debug_println!("hashes needed for idx={:?}: {:?}", _idx, hashes_needed);
+
+            // insert the current node first
+            let current_data_hash: H256 = d.hash(&HASH_TYPE);
             mmr.nodes.push(current_data_hash);
             mmr.heights.push(0);
             mmr.current_len += 1;
+
+            // then do the parent nodes if needed
             for h in 0..hashes_needed {
-                let mut ctx = ring::digest::Context::new(&ring::digest::SHA256);
+                // let mut ctx = ring::digest::Context::new(&ring::digest::SHA256);
+                ctx.reset();
                 // left node, basically we remove small tree at a time,
                 // the order we remove is from small tree to big tree
                 // and the tree size is 2^(h+1) - 1
@@ -113,15 +123,25 @@ impl<T> MMR<T> {
         T: Hashable,
     {
         // basicially the same as new
-        for (idx, d) in data.iter().enumerate() {
+
+        // set up hasher context
+        let mut ctx = Hasher::new(&HASH_TYPE);
+
+        for (_idx, d) in data.iter().enumerate() {
+            // check number of additional hashes needed to form the forest
             let hashes_needed = self.hashes_needed(self.current_len);
-            debug_println!("hashes needed: {:?}", hashes_needed);
-            let current_data_hash: H256 = d.hash();
+            debug_println!("hashes needed for idx={:?}: {:?}", _idx, hashes_needed);
+
+            // insert the current node first
+            let current_data_hash: H256 = d.hash(&HASH_TYPE);
             self.nodes.push(current_data_hash);
             self.heights.push(0);
             self.current_len += 1;
+
+            // then do the parent nodes if needed
             for h in 0..hashes_needed {
-                let mut ctx = ring::digest::Context::new(&ring::digest::SHA256);
+                // let mut ctx = ring::digest::Context::new(&ring::digest::SHA256);
+                ctx.reset();
                 // left node, basically we remove small tree at a time,
                 // the order we remove is from small tree to big tree
                 // and the tree size is 2^(h+1) - 1
@@ -204,12 +224,16 @@ impl<T> MMR<T> {
             nodes_processed,
             current_height
         );
+
+        // set up hasher context
+        let mut ctx = Hasher::new(&HASH_TYPE);
+
         // loop through all possible trees with different heights
         // but also takes care of condition where some trees doesn't exist
         // e.g. at node 15, only tree is height 3 and height 0
         while current_height < self.max_height && nodes_processed < self.current_len {
-            let mut ctx = ring::digest::Context::new(&ring::digest::SHA256);
-
+            // let mut ctx = ring::digest::Context::new(&ring::digest::SHA256);
+            ctx.reset();
             // left node
             ctx.update(self.nodes[left_idx].as_ref());
 
@@ -410,15 +434,20 @@ impl<T> MMR<T> {
             current_height,
             proof_array
         );
+
+        // set up hasher context
+        let mut ctx = Hasher::new(&HASH_TYPE);
+
         let mut bagging_idx = self.current_len - 1;
         let mut right_hash = self.nodes[bagging_idx];
         let mut bagging_height = self.heights[bagging_idx];
         let mut bagged = false;
         while bagging_idx > current_idx {
             // prepare for hash context
-            let mut ctx = ring::digest::Context::new(&ring::digest::SHA256);
+            // let mut ctx = ring::digest::Context::new(&ring::digest::SHA256);
+            ctx.reset();
             // get left hash
-            let mut offset = (2 << bagging_height) - 1;
+            let offset = (2 << bagging_height) - 1;
             // if the left node is already out of bound,
             // or left node is the current node's tree peak,
             // we don't want a hash with current node's tree peak,
@@ -516,10 +545,15 @@ impl<T> MMR<T> {
         // because, for the first time, we hash with the bag root of the right hash(current, right)
         // afterwards we just keep hashing with the left hash(left, current)
         let mut first_time_at_peak = true;
+
+        // set up hasher context
+        let mut ctx = Hasher::new(&HASH_TYPE);
+
         // start from the bottom, move to the top
         for proof_node in mmr_proof.proofs.iter() {
             // prepare a context for this round
-            let mut ctx = ring::digest::Context::new(&ring::digest::SHA256);
+            // let mut ctx = ring::digest::Context::new(&ring::digest::SHA256);
+            ctx.reset();
             let offset = (2 << current_height) - 1;
             let right_neigh_idx = current_idx + offset;
             let left_neigh_idx = if offset > current_idx {
@@ -742,7 +776,7 @@ impl<T> MMR<T> {
 mod tests {
     use super::*;
     use crate::hash::H256;
-    use bincode;
+    // use bincode;
 
     #[test]
     fn construct_empty_node() {

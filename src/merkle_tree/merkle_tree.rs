@@ -1,6 +1,6 @@
-use super::super::hash::{Hashable, H256};
-use log::debug;
-use ring;
+use super::super::hash::{Hashable, Hasher, H256};
+// use ring;
+use crate::HASH_TYPE;
 use serde::{Deserialize, Serialize};
 use std::collections::VecDeque;
 
@@ -42,13 +42,17 @@ impl<T> MerkleTree<T> {
         for leaf in data.into_iter() {
             let leaf_tree_node: Node<T> = Node {
                 data: None, // can't copy the data... can't store it in tree then...
-                hash: (*leaf).hash().as_ref().to_vec(),
+                hash: (*leaf).hash(&HASH_TYPE).as_ref().to_vec(),
                 left: None,
                 right: None,
                 is_leaf: true,
             };
             construct_queue.push_back(leaf_tree_node);
         }
+
+        // set up hash context
+        let mut ctx = Hasher::new(&HASH_TYPE);
+
         // loop until we have only 1 node left: the root
         // some book keeping info
         let mut height: i64 = 1;
@@ -60,7 +64,8 @@ impl<T> MerkleTree<T> {
             height += 1;
             while !construct_queue.is_empty() {
                 if let Some(left) = construct_queue.pop_front() {
-                    let mut ctx = ring::digest::Context::new(&ring::digest::SHA256);
+                    // let mut ctx = ring::digest::Context::new(&ring::digest::SHA256);
+                    ctx.reset();
                     ctx.update(&left.hash);
                     let right_ptr: Option<Box<Node<T>>>;
                     // when we have even number of nodes, good
@@ -172,11 +177,16 @@ pub fn verify(root: &H256, datum: &H256, proof: &[H256], index: usize, _leaf_siz
     let mut path_len = proof.len();
     let mut hash_val: H256 = datum.clone();
     // let mut current_hash_ref: &[u8] = hash_val.as_ref();
+
+    // setup hasher context
+    let mut ctx = Hasher::new(&HASH_TYPE);
+
     let mut cur_idx = index as i64;
     while path_len > 0 {
         path_len -= 1;
         // prepare a context for this round
-        let mut ctx = ring::digest::Context::new(&ring::digest::SHA256);
+        // let mut ctx = ring::digest::Context::new(&ring::digest::SHA256);
+        ctx.reset();
         // check if this datum is in left branch or right branch
         // if datum is left
         if cur_idx % 2 == 0 {
@@ -260,7 +270,7 @@ mod tests {
 mod tests {
     use super::*;
     use crate::hash::H256;
-    use bincode;
+    // use bincode;
 
     macro_rules! gen_merkle_tree_data {
         () => {{
@@ -406,7 +416,7 @@ mod tests {
         let proof = merkle_tree.proof(0);
         assert!(verify(
             &merkle_tree.root(),
-            &input_data[0].hash(),
+            &input_data[0].hash(&HASH_TYPE),
             &proof,
             0,
             input_data.len()
@@ -420,7 +430,7 @@ mod tests {
         let proof = merkle_tree.proof(0);
         assert!(verify(
             &merkle_tree.root(),
-            &input_data[0].hash(),
+            &input_data[0].hash(&HASH_TYPE),
             &proof,
             0,
             input_data.len()
@@ -435,7 +445,7 @@ mod tests {
         // println!("proof trail {:?}", proof);
         assert!(verify(
             &merkle_tree.root(),
-            &input_data[0].hash(),
+            &input_data[0].hash(&HASH_TYPE),
             &proof,
             0,
             input_data.len()
@@ -449,7 +459,7 @@ mod tests {
         println!("proof trail {:?}", proof);
         assert!(verify(
             &merkle_tree.root(),
-            &input_data[3].hash(),
+            &input_data[3].hash(&HASH_TYPE),
             &proof,
             3,
             input_data.len()

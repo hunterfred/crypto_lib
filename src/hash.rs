@@ -3,10 +3,78 @@ use hex;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 
+pub enum Hasher {
+    Blake3Hash { hasher: blake3::Hasher },
+    RingSHA256 { hasher: ring::digest::Context },
+}
+
+pub enum HasherType {
+    Blake3Hash,
+    RingSHA256,
+}
+
 /// An object that can be meaningfully hashed.
 pub trait Hashable {
     /// Hash the object using SHA256.
-    fn hash(&self) -> H256;
+    fn hash(&self, h_type: &HasherType) -> H256;
+}
+
+// pub struct Hasher {
+//     // internal: blake3::Hasher,
+//     internal: HasherType,
+// }
+
+impl Hasher {
+    pub fn new(h_type: &HasherType) -> Self {
+        match *h_type {
+            HasherType::Blake3Hash => {
+                return Hasher::Blake3Hash {
+                    hasher: blake3::Hasher::new(),
+                };
+            }
+            HasherType::RingSHA256 => {
+                return Hasher::RingSHA256 {
+                    hasher: ring::digest::Context::new(&ring::digest::SHA256),
+                };
+            }
+        }
+    }
+
+    pub fn reset(&mut self) {
+        match self {
+            Hasher::Blake3Hash { hasher } => {
+                hasher.reset();
+            }
+            Hasher::RingSHA256 { hasher } => {
+                *hasher = ring::digest::Context::new(&ring::digest::SHA256);
+            }
+        }
+        // self.internal.reset();
+    }
+
+    pub fn finish(&self) -> H256 {
+        match self {
+            Hasher::Blake3Hash { hasher } => {
+                return hasher.finalize().into();
+            }
+            Hasher::RingSHA256 { hasher } => {
+                return (*hasher).clone().finish().into();
+            }
+        }
+        // self.internal.finalize().into()
+    }
+
+    pub fn update(&mut self, input: &[u8]) {
+        match self {
+            Hasher::Blake3Hash { hasher } => {
+                hasher.update(input);
+            }
+            Hasher::RingSHA256 { hasher } => {
+                hasher.update(input);
+            }
+        }
+        // self.internal.update(input);
+    }
 }
 
 pub fn get_hasher() -> blake3::Hasher {
@@ -18,9 +86,12 @@ pub fn get_hasher() -> blake3::Hasher {
 pub struct H256([u8; 32]); // big endian u256
 
 impl Hashable for H256 {
-    fn hash(&self) -> H256 {
-        ring::digest::digest(&ring::digest::SHA256, &self.0).into()
-        // blake3::hash(&self.0).into()
+    fn hash(&self, h_type: &HasherType) -> H256 {
+        // ring::digest::digest(&ring::digest::SHA256, &self.0).into()
+        // blake3::hash(&self.0).into();
+        let mut hasher = Hasher::new(h_type);
+        hasher.update(&self.0);
+        hasher.finish()
     }
 }
 

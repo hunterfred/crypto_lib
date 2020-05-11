@@ -1,3 +1,4 @@
+#[cfg(test)]
 #[macro_use]
 extern crate hex_literal;
 
@@ -11,6 +12,16 @@ pub mod hash;
 pub mod key_pair;
 pub mod merkle_mountain_range;
 pub mod merkle_tree;
+
+// static HASH_TYPE: hash::HasherType = hash::HasherType::Blake3Hash;
+
+// The debug version
+#[cfg(debug_assertions)]
+static HASH_TYPE: hash::HasherType = hash::HasherType::RingSHA256;
+
+// Non-debug version
+#[cfg(not(debug_assertions))]
+static HASH_TYPE: hash::HasherType = hash::HasherType::Blake3Hash;
 
 #[cfg(test)]
 mod tests {
