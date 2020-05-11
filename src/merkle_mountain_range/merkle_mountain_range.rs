@@ -2,6 +2,7 @@ use super::super::hash::Hashable;
 use super::super::hash::Hasher;
 use super::super::hash::H256;
 use crate::HASH_TYPE;
+use serde::{Deserialize, Serialize};
 
 // The debug version
 #[cfg(debug_assertions)]
@@ -15,7 +16,7 @@ macro_rules! debug_println {
     ($( $args:expr ),*) => {};
 }
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct MMR<T> {
     // height of each node in MMR
     heights: Vec<usize>,
@@ -38,7 +39,7 @@ pub struct MMR<T> {
     _real_data: std::marker::PhantomData<T>,
 }
 
-#[derive(Debug)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct MMRProof {
     target_node: H256,
     target_idx: usize,
