@@ -700,6 +700,29 @@ impl<T> MMR<T> {
         return heights;
     }
 
+    /// convert an input array index into index in MMR
+    /// e.g. we have MMR [0, 0, 1, 0, 0, 1, 2, 0, 0, 1]
+    /// we can convert index 3 to 4, index 5 to 8
+    pub fn convert_to_mmr_idx(input_idx: usize) -> usize {
+        // gradually remove the possible trees from input array
+        let mut mmr_idx = input_idx;
+        let mut nodes_processed = 0;
+        while nodes_processed < input_idx {
+            let mut idx_local = input_idx - nodes_processed;
+            let mut tree_height = 0;
+            // pre take 1 for correctness
+            idx_local >>= 1;
+            while idx_local > 0 {
+                idx_local >>= 1;
+                tree_height += 1;
+            }
+            debug_println!("Conversion: tree height is {:?}", tree_height);
+            nodes_processed += 1 << tree_height;
+            mmr_idx += (1 << tree_height) - 1;
+        }
+        return mmr_idx;
+    }
+
     /// given the size of the mmr
     /// return the peaks' locations and their height
     /// return valuse are all 0 indexed
@@ -1296,6 +1319,12 @@ mod tests {
                 assert_eq!(mmr.verify(&mmr.proof(i)), false);
             }
         }
+    }
+
+    #[test]
+    fn test_index_conversion() {
+        let mmr_idx = MMR::<H256>::convert_to_mmr_idx(28);
+        assert_eq!(mmr_idx, 53);
     }
 }
 
