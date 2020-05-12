@@ -24,10 +24,12 @@ time took for ckb_merkle_mountain_range to verify proof the MMR of size 630000: 
 
 ### Data
 
+ unit: us
+
 
 | construction  |           |            |           |   | proof         |         |          |          |   | verify        |         |          |          |
 |---------------|-----------|------------|-----------|---|---------------|---------|----------|----------|---|---------------|---------|----------|----------|
-| size unit: us | Our MMR   | MMR-git1   | MMR-git2  |   | size unit: us | Our MMR | MMR-git1 | MMR-git2 |   | size unit: us | Our MMR | MMR-git1 | MMR-git2 |
+| size | Our MMR   | MMR-git1   | MMR-git2  |   | size | Our MMR | MMR-git1 | MMR-git2 |   | size | Our MMR | MMR-git1 | MMR-git2 |
 | 10            | 23.662    | 126.677    | 17.475    |   | 10            | 1.246   | 3.908    | 3.962    |   | 10            | 2.587   | 3.918    | 6.382    |
 | 50            | 32.611    | 225.294    | 54.116    |   | 50            | 1.506   | 4.331    | 5.033    |   | 50            | 2.472   | 4.443    | 7.279    |
 | 100           | 49.385    | 364.363    | 102.241   |   | 100           | 1.599   | 6.189    | 5.348    |   | 100           | 2.586   | 4.927    | 7.512    |
