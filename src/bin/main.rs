@@ -119,5 +119,5 @@ pub fn test_mmr(mmr_size: usize) {
 }
 
 pub fn main() {
-    test_mmr(630000);
+    test_mmr(100000);
 }
