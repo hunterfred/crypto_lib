@@ -3,6 +3,14 @@ use hex;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 
+// sum type: https://tonyarcieri.com/a-quick-tour-of-rusts-type-system-part-1-sum-types-a-k-a-tagged-unions
+// https://doc.rust-lang.org/stable/rust-by-example/custom_types/enum.html
+// https://www.cs.brandeis.edu/~cs146a/rust/rustbyexample-02-21-2015/enum.html
+// https://www.reddit.com/r/rust/comments/ayvdfa/generic_constructor_for_enum/
+// https://doc.rust-lang.org/book/ch06-01-defining-an-enum.html
+// basically attach an anonymous struct inside, and the struct carries the real hasher
+// this way we can merge multiple types of hasher into one union, and use match to determine the hasher type
+
 pub enum Hasher {
     Blake3Hash { hasher: blake3::Hasher },
     RingSHA256 { hasher: ring::digest::Context },

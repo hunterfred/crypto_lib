@@ -50,3 +50,14 @@ time took for ckb_merkle_mountain_range to verify proof the MMR of size 630000: 
 ![Proof](bench_results/mmr-perf-2.jpg)
 
 ![Verify](bench_results/mmr-perf-3.jpg)
+
+
+initial docs:
+[mmr](https://github.com/opentimestamps/opentimestamps-server/blob/master/doc/merkle-mountain-range.md)
+[grin](https://github.com/mimblewimble/grin/blob/master/doc/mmr.md)
+
+other implementations:
+[nervos network](https://github.com/nervosnetwork/merkle-mountain-range) \
+[ckb-mmr](https://crates.io/crates/ckb-merkle-mountain-range) \
+[merklemountainrange](https://docs.rs/crate/merklemountainrange/0.0.1) \
+[pmmr](https://github.com/mimblewimble/grin/blob/master/core/src/core/pmmr.rs)
